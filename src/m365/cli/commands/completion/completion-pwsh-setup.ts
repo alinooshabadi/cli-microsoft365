@@ -85,7 +85,7 @@ class CliCompletionPwshSetupCommand extends AnonymousCommand {
       cmd.log(`Adding CLI for Microsoft 365 command completion to PowerShell profile...`);
     }
 
-    const completionScriptPath: string = path.resolve(__dirname, '..', '..', '..', '..', '..', 'scripts', 'Register-O365CLICompletion.ps1');
+    const completionScriptPath: string = path.resolve(__dirname, '..', '..', '..', '..', '..', 'scripts', 'Register-CLIM365Completion.ps1');
     try {
       fs.appendFileSync(args.options.profile, os.EOL + completionScriptPath, 'utf8');
 
@@ -143,7 +143,7 @@ class CliCompletionPwshSetupCommand extends AnonymousCommand {
   More information:
 
     Command completion
-      https://pnp.github.io/office365-cli/concepts/completion/
+      https://pnp.github.io/cli-microsoft365/concepts/completion/
 `);
   }
 }
