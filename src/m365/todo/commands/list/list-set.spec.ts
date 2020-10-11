@@ -1,15 +1,14 @@
-import commands from '../../commands';
-import Command, { CommandOption, CommandValidate, CommandError } from '../../../../Command';
+import * as assert from 'assert';
 import * as sinon from 'sinon';
 import appInsights from '../../../../appInsights';
 import auth from '../../../../Auth';
-const command: Command = require('./list-set');
-import * as assert from 'assert';
+import Command, { CommandError, CommandOption, CommandValidate } from '../../../../Command';
 import request from '../../../../request';
 import Utils from '../../../../Utils';
+import commands from '../../commands';
+const command: Command = require('./list-set');
 
 describe(commands.LIST_SET, () => {
-  let vorpal: Vorpal;
   let log: string[];
   let cmdInstance: any;
 
@@ -20,7 +19,6 @@ describe(commands.LIST_SET, () => {
   });
 
   beforeEach(() => {
-    vorpal = require('../../../../vorpal-init');
     log = [];
     cmdInstance = {
       commandWrapper: {
@@ -36,7 +34,7 @@ describe(commands.LIST_SET, () => {
 
   afterEach(() => {
     Utils.restore([
-      vorpal.find,
+      request.get,
       request.patch
     ]);
   });
@@ -50,14 +48,14 @@ describe(commands.LIST_SET, () => {
   });
 
   it('has correct name', () => {
-    assert.equal(command.name.startsWith(commands.LIST_SET), true);
+    assert.strictEqual(command.name.startsWith(commands.LIST_SET), true);
   });
 
   it('has a description', () => {
-    assert.notEqual(command.description, null);
+    assert.notStrictEqual(command.description, null);
   });
 
-  it('updates a To Do list', (done) => {
+  it('updates a To Do list by ID', (done) => {
     sinon.stub(request, 'patch').callsFake((opts) => {
       if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists/AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA=`) {
         return Promise.resolve({
@@ -88,7 +86,7 @@ describe(commands.LIST_SET, () => {
       }
     }, () => {
       try {
-        assert.equal(log.length, 0);
+        assert.strictEqual(log.length, 0);
         done();
       }
       catch (e) {
@@ -97,7 +95,7 @@ describe(commands.LIST_SET, () => {
     });
   });
 
-  it('updates a To Do list (verbose)', (done) => {
+  it('updates a To Do list by ID (verbose)', (done) => {
     sinon.stub(request, 'patch').callsFake((opts) => {
       if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists/AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA=`) {
         return Promise.resolve({
@@ -138,6 +136,100 @@ describe(commands.LIST_SET, () => {
     });
   });
 
+  it('updates a To Do list by Name', (done) => {
+    sinon.stub(request, 'get').callsFake((opts) => {
+      if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists?$filter=displayName eq 'FooList'`) {
+        return Promise.resolve({
+          "@odata.context": "https://graph.microsoft.com/beta/$metadata#lists",
+          "value": [
+            {
+              "@odata.etag": "W/\"m1fdwWoFiE2YS9yegTKoYwAA/ZGllw==\"",
+              "displayName": "FooList",
+              "isOwner": true,
+              "isShared": false,
+              "wellknownListName": "none",
+              "id": "AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIiAAA="
+            }
+          ]
+        });
+      }
+
+      return Promise.reject('Invalid request');
+    });
+
+    sinon.stub(request, 'patch').callsFake((opts) => {
+      if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists/AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA=`) {
+        return Promise.resolve({
+          "@odata.context": "https://graph.microsoft.com/beta/$metadata#lists",
+          "value": [
+            {
+              "@odata.context": "https://graph.microsoft.com/beta/$metadata#lists/$entity",
+              "@odata.etag": "W/\"m1fdwWoFiE2YS9yegTKoYwAA/hqngw==\"",
+              "displayName": "foo",
+              "isOwner": true,
+              "isShared": false,
+              "wellknownListName": "none",
+              "id": "AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA="
+            }
+          ]
+        });
+      }
+
+      return Promise.reject('Invalid request');
+    });
+
+    cmdInstance.action = command.action();
+    cmdInstance.action({
+      options: {
+        debug: false,
+        name: "FooList",
+        newName: "Bar"
+      }
+    }, () => {
+      try {
+        assert.strictEqual(log.length, 0);
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    });
+  });
+
+  it('Handles error when List name is not available', (done) => {
+    sinon.stub(request, 'get').callsFake((opts) => {
+      if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists?$filter=displayName eq 'InvalidFooList'`) {
+        return Promise.resolve({
+          "@odata.context": "https://graph.microsoft.com/beta/$metadata#users('8bc5c293-4208-414e-9837-718a0385be6b')/todo/lists",
+          "value": []
+        });
+      }
+
+      return Promise.reject('Invalid request');
+    });
+
+    sinon.stub(request, 'patch').callsFake((opts) => {
+      return Promise.resolve();
+    });
+
+    cmdInstance.action = command.action();
+    cmdInstance.action({
+      options: {
+        debug: false,
+        name: "InvalidFooList",
+        newName: "foo"
+      }
+    }, (err?: any) => {
+      try {
+        assert.strictEqual(JSON.stringify(err), JSON.stringify(new CommandError('The list InvalidFooList cannot be found')));
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    });
+  });
+
   it('handles error correctly', (done) => {
     sinon.stub(request, 'patch').callsFake((opts) => {
       if (opts.url === `https://graph.microsoft.com/beta/me/todo/lists/AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA=`) {
@@ -156,7 +248,7 @@ describe(commands.LIST_SET, () => {
       }
     }, (err?: any) => {
       try {
-        assert.equal(JSON.stringify(err), JSON.stringify(new CommandError('An error has occurred')));
+        assert.strictEqual(JSON.stringify(err), JSON.stringify(new CommandError('An error has occurred')));
         done();
       }
       catch (e) {
@@ -165,7 +257,7 @@ describe(commands.LIST_SET, () => {
     });
   });
 
-  it('fails validation if name is not set', () => {
+  it('fails validation if new name is not set', () => {
     const actual = (command.validate() as CommandValidate)({
       options: {
         debug: false,
@@ -175,7 +267,7 @@ describe(commands.LIST_SET, () => {
     assert.notEqual(actual, true);
   });
 
-  it('fails validation if id is not set', () => {
+  it('fails validation if neither id nor name is not set', () => {
     const actual = (command.validate() as CommandValidate)({
       options: {
         debug: false,
@@ -183,6 +275,18 @@ describe(commands.LIST_SET, () => {
       }
     });
     assert.notEqual(actual, true);
+  });
+
+  it('fails validation if both id and name are set', () => {
+    const actual = (command.validate() as CommandValidate)({
+      options: {
+        debug: false,
+        id: "AAMkAGI3NDhlZmQzLWQxYjAtNGJjNy04NmYwLWQ0M2IzZTNlMDUwNAAuAAAAAACQ1l2jfH6VSZraktP8Z7auAQCbV93BagWITZhL3J6BMqhjAAD9pHIjAAA=",
+        name: "FooList",
+        newName: "Foo"
+      }
+    });
+    assert.notStrictEqual(actual, true);
   });
 
   it('passes validation when all parameters are valid', () => {
@@ -206,39 +310,5 @@ describe(commands.LIST_SET, () => {
       }
     });
     assert(containsOption);
-  });
-
-  it('has help referring to the right command', () => {
-    const cmd: any = {
-      log: (msg: string) => { },
-      prompt: () => { },
-      helpInformation: () => { }
-    };
-    const find = sinon.stub(vorpal, 'find').callsFake(() => cmd);
-    cmd.help = command.help();
-    cmd.help({}, () => { });
-    assert(find.calledWith(commands.LIST_SET));
-  });
-
-  it('has help with examples', () => {
-    const _log: string[] = [];
-    const cmd: any = {
-      log: (msg: string) => {
-        _log.push(msg);
-      },
-      prompt: () => { },
-      helpInformation: () => { }
-    };
-    sinon.stub(vorpal, 'find').callsFake(() => cmd);
-    cmd.help = command.help();
-    cmd.help({}, () => { });
-    let containsExamples: boolean = false;
-    _log.forEach(l => {
-      if (l && l.indexOf('Examples:') > -1) {
-        containsExamples = true;
-      }
-    });
-    Utils.restore(vorpal.find);
-    assert(containsExamples);
   });
 });
