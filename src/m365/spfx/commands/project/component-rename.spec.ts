@@ -5,6 +5,9 @@ const command: Command = require("./component-rename");
 
 describe(commands.COMPONENT_RENAME, () => {
   it("has correct name", () => {
-    assert.equal(command.name.startsWith(commands.COMPONENT_RENAME), true);
+    assert.strictEqual(
+      command.name.startsWith(commands.COMPONENT_RENAME),
+      true
+    );
   });
 });
