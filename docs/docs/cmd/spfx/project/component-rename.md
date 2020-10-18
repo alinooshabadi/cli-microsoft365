@@ -1,0 +1,3 @@
+# spfx component rename
+
+TODO
