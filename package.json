@@ -22,7 +22,8 @@
     "watch": "tsc -w -p .",
     "clean": "rimraf ./dist",
     "test": "c8 mocha \"dist/**/*.spec.js\"",
-    "mytest": "mocha -r ts-node/register \"src/m365/spfx/**/component-rename.spec.ts\""
+    "mytest": "mocha -r ts-node/register \"src/m365/spfx/**/component-rename.spec.ts\"",
+    "mytest2": "mocha -r ts-node/register \"src/m365/spfx/**/project-rename.spec.ts\""
   },
   "keywords": [
     "office 365",
